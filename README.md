@@ -5,7 +5,7 @@
 ## node.js + vue.js + vue-router + axios + elementui + electron
 ## 说明：  
 1、在web版本的基础上加入electron编译成桌面版本  
-2、打包工具：electron build（编译为exe程序） + nsis（打包exe安装包）  
+2、打包工具：electron-packager（编译为exe程序） + nsis（打包exe安装包）  
 3、编译运行：npm run electron_dev  
 4、编译exe：npm run electron_build  
 ## 参考
