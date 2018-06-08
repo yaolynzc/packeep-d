@@ -5,11 +5,24 @@
         :default-active="activeIndex"
         class="el-menu-demo"
         mode="horizontal"
-        background-color="#409EFF"
+        background-color="#FFAF40"
         text-color="#000"
         active-text-color="#fff">
         <el-menu-item index="1">处理中心</el-menu-item>
       </el-menu>
+      <div class="user-dropdown-menu">
+        <img style="width:32px;height:32px;margin-top:15px;" :src="avatar">
+        <span>&nbsp;</span>
+        <el-dropdown @command="dropDownClick">
+          <span class="el-dropdown-link">{{profileForm.nickname}}<i class="el-icon-arrow-down el-icon--right"></i>
+          </span>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item command="profile"><i class="el-icon-info">&nbsp;个人信息</i></el-dropdown-item>
+            <el-dropdown-item command="modpwd"><i class="el-icon-edit-outline">&nbsp;修改密码</i></el-dropdown-item>
+            <el-dropdown-item command="logout"><i class="el-icon-back">&nbsp;退出系统</i></el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </div>
     </el-header>
     <el-main>
       <el-row>
@@ -20,15 +33,6 @@
             ref="ruleForm"
             label-width="100px">
             <el-tag>包裹入库</el-tag>
-            <el-form-item label="编号：" prop="code">
-              <el-input
-                v-model="ruleForm.code"
-                suffix-icon="el-icon-location"
-                ref="inputPcode"
-                @keyup.enter.native="getFocus('inputUphone')"
-                auto-complete="true">
-              </el-input>
-            </el-form-item>
             <el-form-item label="手机：" prop="tel">
               <el-autocomplete
                 v-model="ruleForm.tel"
@@ -46,6 +50,15 @@
                 v-model="ruleForm.name"
                 suffix-icon="el-icon-news"
                 ref="inputUname"
+                @keyup.enter.native="getFocus('inputPcode')"
+                auto-complete="true">
+              </el-input>
+            </el-form-item>
+            <el-form-item label="位置编号：" prop="code">
+              <el-input
+                v-model="ruleForm.code"
+                suffix-icon="el-icon-location"
+                ref="inputPcode"
                 @keyup.enter.native="submitForm('ruleForm')"
                 auto-complete="true">
               </el-input>
@@ -71,11 +84,18 @@
                 </el-input>
                 <el-button type="primary" icon="el-icon-search" @click="search">搜索</el-button>
                 <el-button type="danger" icon="el-icon-delete" @click="deletePack">删除</el-button>
+                <el-button type="success" icon="el-icon-phone" @click="dialBatch">批量电话</el-button>
               </div>
             </el-col>
             <el-col :span="24" style="margin-top: 15px">
               <el-tabs v-model="activeName" @tab-click="tabhandleClick">
               <el-tab-pane label="未签收" name="0">
+                <el-row class="daytimeButtons">
+                  <el-button size="mini" type="primary" plain @click="searchByTime(0)">今天</el-button>
+                  <el-button size="mini" type="primary" plain @click="searchByTime(1)">昨天</el-button>
+                  <el-button size="mini" type="primary" plain @click="searchByTime(6)">近七天</el-button>
+                  <el-button size="mini" type="primary" plain @click="search">全部</el-button>
+                </el-row>
                 <el-table
                   v-loading="loading"
                   element-loading-text="加载中"
@@ -89,7 +109,7 @@
                     width="50">
                   </el-table-column>
                   <el-table-column
-                    label="编号"
+                    label="位置编号"
                     prop="Poscode"
                     width="100">
                   </el-table-column>
@@ -156,6 +176,12 @@
                 </div>
               </el-tab-pane>
               <el-tab-pane label="已签收" name="1">
+                <el-row class="daytimeButtons">
+                  <el-button size="mini" type="primary" plain @click="searchByTime(0)">今天</el-button>
+                  <el-button size="mini" type="primary" plain @click="searchByTime(1)">昨天</el-button>
+                  <el-button size="mini" type="primary" plain @click="searchByTime(6)">近七天</el-button>
+                  <el-button size="mini" type="primary" plain @click="search">全部</el-button>
+                </el-row>
                 <el-table
                   v-loading="loading"
                   element-loading-text="加载中"
@@ -164,7 +190,7 @@
                   :data="packData.data"
                   style="width: 100%">
                   <el-table-column
-                    label="编号"
+                    label="位置编号"
                     prop="Poscode"
                     width="180">
                   </el-table-column>
@@ -186,7 +212,7 @@
                     width="180"
                     align="center">
                     <template slot-scope="scope">
-                      <img  :src="picUrlPrefix + scope.row.Havepic" alt="" style="width: 80px;height: 60px">
+                      <img  :src="uploadPicPre + scope.row.Havepic" alt="" style="width: 80px;height: 60px">
                     </template>
                   </el-table-column>
                   <el-table-column
@@ -220,6 +246,38 @@
               </div>
             </div>
           </el-dialog>
+          <el-dialog title="个人信息" width="500px" :visible.sync="dialogProfileVisible" @close="closeProfileDialog">
+              <el-form :model="profileForm" ref="profileForm" status-icon :rules="profileRules">
+                <el-form-item label="手机号：" :label-width="profileForm.itemWidth">
+                  <span>{{profileForm.id}}</span>
+                </el-form-item>
+                <el-form-item label="用户名：" prop="username" :label-width="profileForm.itemWidth">
+                  <el-input @keyup.enter.native="getFocus('inputNickname')" v-model="profileForm.username" :disabled="profileForm.inputDisable" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="昵称：" prop="nickname" :label-width="profileForm.itemWidth">
+                  <el-input @keyup.enter.native="getFocus('inputAddress')" ref="inputNickname" v-model="profileForm.nickname" :disabled="profileForm.inputDisable" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="地址：" prop="address" style="margin-left:25px;">
+                  <el-input style="width: 350px;" @keyup.enter.native="profileEditClick" ref="inputAddress" v-model="profileForm.address" :disabled="profileForm.inputDisable" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" icon="el-icon-edit" style="margin-left:50px;" @click="profileEditClick">{{profileEditText}}</el-button>
+                </el-form-item>
+              </el-form>
+          </el-dialog>
+          <el-dialog title="修改密码" width="450px" :visible.sync="dialogModPwdVisible">
+            <el-form :model="modpwdForm" ref="modpwdForm" status-icon :rules="modpwdRules">
+              <el-form-item label="新密码：" prop="pass" :label-width="modpwdForm.itemWidth">
+                <el-input type="password" @keyup.enter.native="getFocus('inputCheckpass')" v-model="modpwdForm.pass" auto-complete="off"></el-input>
+              </el-form-item>
+              <el-form-item label="确认密码：" prop="checkpass" :label-width="modpwdForm.itemWidth">
+                <el-input type="password" @keyup.enter.native="modpwdSubmitClick('modpwdForm')" ref="inputCheckpass" v-model="modpwdForm.checkpass" auto-complete="off"></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" icon="el-icon-check" style="margin-left:50px;" @click="modpwdSubmitClick('modpwdForm')">确定</el-button>
+              </el-form-item>
+            </el-form>
+          </el-dialog>
         </el-col>
       </el-row>
     </el-main>
@@ -230,31 +288,47 @@
 // 引入百度语音RESTful跨域请求api
 import BaiduAip from '@/utils/baidu_tts_cors.js'
 import moment from 'moment'
-// import nopic from '@/assets/img/nopic.png'
+import md5 from 'md5'
+import menavatar from '@/assets/img/men.png'
 
 export default {
-  name: 'Index',
+  name: 'index',
   data () {
+    var validatePass = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请输入密码'))
+      } else {
+        if (this.modpwdForm.checkpass !== '') {
+          this.$refs.modpwdForm.validateField('checkpass')
+        }
+        callback()
+      }
+    }
+    var validatePass2 = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请再次输入密码'))
+      } else if (value !== this.modpwdForm.pass) {
+        callback(new Error('两次输入密码不一致!'))
+      } else {
+        callback()
+      }
+    }
     return {
+      uid: localStorage.getItem('uid') || sessionStorage.getItem('uid'),
+      upass: localStorage.getItem('upass') || sessionStorage.getItem('upass'),
+      bdtoken: '',
+      avatar: menavatar,
+      uploadPicPre: 'http://211.159.218.41/',
       userTelFill: [
         // { 'value': '153', 'name': 'chen' },
         // { 'value': '186', 'name': 'flame' }
       ],
       mulSelData: [],
       dialogCameraVisible: false,
+      dialogProfileVisible: false,
+      dialogModPwdVisible: false,
       dialogCameraPackID: '',
       snapCameraBtn: '拍照',
-      picUrlPrefix: 'http://211.159.218.41/',
-      form: {
-        name: '',
-        region: '',
-        date1: '',
-        date2: '',
-        delivery: false,
-        type: [],
-        resource: '',
-        desc: ''
-      },
       activeName: '0',
       loading: null,
       ruleForm: {
@@ -274,6 +348,39 @@ export default {
         ],
         name: []
       },
+      profileForm: {
+        id: '',
+        username: '',
+        nickname: '',
+        address: '',
+        itemWidth: '120px',
+        inputDisable: true
+      },
+      profileRules: {
+        username: [
+          {required: true, message: '请输入用户名', trigger: 'blur'}
+        ],
+        nickname: [
+          {required: true, message: '请输入用户昵称', trigger: 'blur'}
+        ],
+        address: [
+          {required: true, message: '请输入用户地址', trigger: 'blur'}
+        ]
+      },
+      profileEditText: '修改',
+      modpwdForm: {
+        pass: '',
+        checkpass: '',
+        itemWidth: '120px'
+      },
+      modpwdRules: {
+        pass: [
+          { required: true, validator: validatePass, trigger: 'blur' }
+        ],
+        checkpass: [
+          { required: true, validator: validatePass2, trigger: 'blur' }
+        ]
+      },
       packData: {
         userphone: '',
         data: [],
@@ -288,15 +395,61 @@ export default {
     }
   },
   created () {
-    this.getCount('', this.activeName)
+    this.naviMethod()
   },
   methods: {
-    getCount (uphone, state) {
-      // 检索总数先归零
+    naviMethod () {
+      if (this.checkLogin()) {
+        this.getProfile()
+        this.search()
+      } else {
+        this.$router.push('/login')
+      }
+    },
+    getProfile () {
+      // console.log(this.uid)
+      // 获取个人信息
+      let obj = {
+        pwd: this.upass
+      }
+      let that = this
+      this.$http.get('http://211.159.218.41/api/user/' + this.uid, {params: obj})
+        .then(function (res) {
+          if (res.data.success) {
+            that.profileForm.id = res.data.user.Id
+            that.profileForm.username = res.data.user.Username
+            that.profileForm.nickname = res.data.user.Nickname
+            that.profileForm.address = res.data.user.Address
+          }
+        })
+        .catch(function (err) {
+          console.log(err.message)
+        })
+
+      // 获取百度语音合成token
+      this.$http.get('http://211.159.218.41/api/config', {params: {'name': 'bdtoken'}})
+        .then(function (res) {
+          if (res.data.success) {
+            // console.log(JSON.parse(res.data.bdtoken).access_token)
+            // json字符串转json对象，获取百度语音合成token的access_token值
+            that.bdtoken = JSON.parse(res.data.bdtoken).access_token
+          }
+        })
+        .catch(function (err) {
+          console.log(err.message)
+        })
+    },
+    getCount (uphone, state, daytime) {
+      // 总数、页码、列表数据先归零和清空
       this.packData.pagination.total = 0
+      this.packData.pagination.page = 1
+      this.packData.data = []
+      // console.log(daytime)
       let obj = {
         uphone: uphone,
         state: state,
+        daytime: daytime,
+        uid: this.uid,
         rad: Math.random()
       }
 
@@ -306,7 +459,7 @@ export default {
         .then(function (res) {
           if (res.data.count > 0) {
             that.packData.pagination.total = res.data.count
-            that.getList(uphone, state)
+            that.getList(uphone, state, daytime)
           } else {
             that.packData.data = []
             that.loading = false
@@ -316,10 +469,12 @@ export default {
           console.log(err.message)
         })
     },
-    getList (uphone, state) {
+    getList (uphone, state, daytime) {
       let obj = {
         uphone: uphone,
         state: state,
+        daytime: daytime,
+        uid: this.uid,
         page: this.packData.pagination.page,
         size: this.packData.pagination.size,
         rad: Math.random()
@@ -339,16 +494,17 @@ export default {
 
           if (uphone) {
             let redt = res.data.dt
-            let text = '包裹编号'
+            let text = '包裹位置编号'
             let audio = null
 
             // 拼接检索到的编码
             for (let n of redt) {
               text += n.Poscode
             }
+            // 向百度发送语音合成请求
             audio = BaiduAip.btts({
               tex: text,
-              tok: '24.591d35c06b22dda2d19094f77e6b7a23.2592000.1527471488.282335-11167025',
+              tok: that.bdtoken,
               spd: 5,
               pit: 5,
               vol: 9,
@@ -379,14 +535,17 @@ export default {
     // 点击页码
     handleCurrentChange (val) {
       this.packData.pagination.page = val
-      this.getList(this.packData.userphone, this.activeName)
+      this.getList(this.packData.userphone, this.activeName, '')
     },
     // 搜索
     search () {
-      this.packData.pagination.total = 0
-      this.packData.pagination.page = 1
-      this.packData.data = []
-      this.getCount(this.packData.userphone, this.activeName)
+      this.getCount(this.packData.userphone, this.activeName, '')
+    },
+    searchByTime (day) {
+      moment.locale('zh-cn')
+      let daynow = moment()
+      let daytime = daynow.subtract(day, 'days').format('YYYY-MM-DD')
+      this.getCount('', this.activeName, daytime)
     },
     // 入库
     submitForm (formName) {
@@ -395,7 +554,8 @@ export default {
           let obj = {
             pcode: this.ruleForm.code,
             uphone: this.ruleForm.tel,
-            uname: this.ruleForm.name
+            uname: this.ruleForm.name,
+            uid: this.uid
           }
 
           let that = this
@@ -407,7 +567,7 @@ export default {
                   type: 'success'
                 })
                 that.resetForm()
-                that.getCount('', that.activeName)
+                that.getCount('', that.activeName, '')
               }
             })
             .catch(function (err) {
@@ -417,14 +577,15 @@ export default {
       })
     },
     resetForm () {
+      this.getFocus('inputUphone')
       this.$refs['ruleForm'].resetFields()
-      this.getFocus('inputPcode')
+      this.$refs['ruleForm'].clearValidate()
       this.userTelFill = []
     },
     // tab切换点击事件
     tabhandleClick (tab, event) {
       this.packData.data = []
-      this.getCount(this.packData.userphone, this.activeName)
+      this.getCount(this.packData.userphone, this.activeName, '')
     },
     // 不拍照直接签收
     handleOutClick (index, row) {
@@ -441,7 +602,10 @@ export default {
               message: '签收成功！',
               type: 'success'
             })
-            that.getCount(that.packData.userphone, that.activeName)
+            // 关闭摄像头
+            that.closeCamera()
+            // 刷新页面
+            that.getCount(that.packData.userphone, that.activeName, '')
           }
         })
         .catch(function (err) {
@@ -451,7 +615,7 @@ export default {
     // 拍照上传并完成签收
     uploadPicClick () {
       let picBase64 = this.$refs.canvas.toDataURL().substring(22)
-      console.log(picBase64)
+      // console.log(picBase64)
       let obj = {
         state: 1,
         havepic: picBase64
@@ -466,8 +630,7 @@ export default {
               message: '签收成功！',
               type: 'success'
             })
-            that.closeCamera()
-            that.getCount(that.packData.userphone, that.activeName)
+            that.getCount(that.packData.userphone, that.activeName, '')
           } else {
             // 显示失败消息
             that.$message({
@@ -483,78 +646,106 @@ export default {
     handleDialClick (index, row) {
       let obj = {
         uphone: row.Userphone,
-        uname: row.Username
+        uname: row.Username,
+        uid: this.uid
       }
-
-      let that = this
-      this.$http.post('http://211.159.218.41/api/phone', this.$qs.stringify(obj))
-        .then(function (res) {
-          if (res.data.success) {
-            // 显示电话通知成功消息
-            that.$message({
-              message: '电话通知成功！',
-              type: 'success'
-            })
-            // 电话通知成功后刷新页面
-            let obj = {
-              havedial: 1
-            }
-            that.$http.put('http://211.159.218.41/api/pack/' + row.Id, that.$qs.stringify(obj))
-              .then(function (res) {
-                if (res.data.success) {
-                  // 刷新页面
-                  that.getCount(that.packData.userphone, that.activeName)
-                }
-              })
-              .catch(function (err) {
-                console.log(err.message)
-              })
-          } else {
-            // 显示电话通知失败消息
-            that.$message({
-              message: '电话通知失败！',
-              type: 'error'
-            })
-          }
-        })
-        .catch(function (err) {
-          console.log(err.message)
-        })
-    },
-    intimeFormatter (row, column) {
-      return moment(row.Intime).format('YYYY-MM-DD HH:mm:ss')
-    },
-    outtimeFormatter (row, column) {
-      return moment(row.Outtime).format('YYYY-MM-DD HH:mm:ss')
-    },
-    getFocus (inputname) {
-      this.$refs[inputname].focus()
-    },
-    searchUphone () {
-      if (this.ruleForm.tel.length > 2) {
-        // console.log(this.ruleForm.tel.length)
-
-        let obj = {
-          uphone: this.ruleForm.tel,
-          size: this.packData.pagination.size,
-          rad: Math.random()
-        }
-
+      let dialRes = this.openFullScreenLoading()
+      // console.log(dialRes)
+      if (dialRes) {
         let that = this
-        this.$http.get('http://211.159.218.41/api/phone', {params: obj})
+        this.$http.post('http://211.159.218.41/api/phone', this.$qs.stringify(obj))
           .then(function (res) {
-            if (res.data.dt && res.data.dt.length > 0) {
-              let redt = res.data.dt
-              // 挑选userphone和username
-              for (let n of redt) {
-                n.value = n.Userphone
+            if (res.data.success) {
+              // 显示电话通知成功消息
+              that.$message({
+                message: '电话通知成功！',
+                type: 'success'
+              })
+              // 电话通知成功后刷新页面
+              let obj = {
+                havedial: 1
               }
-              that.userTelFill = redt
+              that.$http.put('http://211.159.218.41/api/pack/' + row.Id, that.$qs.stringify(obj))
+                .then(function (res) {
+                  if (res.data.success) {}
+                })
+                .catch(function (err) {
+                  console.log(err.message)
+                })
+            } else {
+              // 显示电话通知失败消息
+              that.$message({
+                message: '通知失败！',
+                type: 'error'
+              })
             }
           })
           .catch(function (err) {
             console.log(err.message)
           })
+      }
+    },
+    // 批量电话通知
+    dialBatch () {
+      let dialPack = this.mulSelData
+      if (dialPack.length === 0) {
+        this.$message.error('请勾选需要电话通知的包裹!')
+      } else {
+        this.$confirm('您确定给所勾选的包裹用户拨打电话?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          let that = this
+          for (let item of dialPack) {
+            let obj = {
+              uphone: item.Userphone,
+              uname: item.Username,
+              uid: this.uid
+            }
+            this.$http.post('http://211.159.218.41/api/phone', this.$qs.stringify(obj))
+              .then(function (res) {
+                if (res.data.success) {
+                  // 电话通知成功后刷新页面
+                  let obj = {
+                    havedial: 1
+                  }
+                  that.$http.put('http://211.159.218.41/api/pack/' + item.Id, that.$qs.stringify(obj))
+                    .then(function (res) {
+                      if (res.data.success) {
+                        // 显示电话通知成功消息
+                        that.$notify({
+                          title: item.Userphone,
+                          message: '电话通知成功！',
+                          position: 'bottom-right',
+                          type: 'success'
+                        })
+                      }
+                    })
+                    .catch(function (err) {
+                      console.log(err.message)
+                    })
+                } else {
+                  // 显示电话通知失败消息
+                  that.$notify.error({
+                    title: item.Userphone,
+                    message: '电话通知失败！',
+                    position: 'bottom-right'
+                  })
+                }
+              })
+              .catch(function (err) {
+                console.log(err.message)
+              })
+          }
+          // 刷新页面
+          this.openFullScreenLoading()
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消批量拨打电话！'
+          })
+        })
       }
     },
     // 删除入库记录
@@ -598,6 +789,42 @@ export default {
         })
       }
     },
+    intimeFormatter (row, column) {
+      return moment(row.Intime).format('YYYY-MM-DD HH:mm:ss')
+    },
+    outtimeFormatter (row, column) {
+      return moment(row.Outtime).format('YYYY-MM-DD HH:mm:ss')
+    },
+    getFocus (inputname) {
+      this.$refs[inputname].focus()
+    },
+    searchUphone () {
+      if (this.ruleForm.tel.length > 2) {
+        // console.log(this.ruleForm.tel.length)
+
+        let obj = {
+          uphone: this.ruleForm.tel,
+          size: this.packData.pagination.size,
+          rad: Math.random()
+        }
+
+        let that = this
+        this.$http.get('http://211.159.218.41/api/phone', {params: obj})
+          .then(function (res) {
+            if (res.data.dt && res.data.dt.length > 0) {
+              let redt = res.data.dt
+              // 挑选userphone和username
+              for (let n of redt) {
+                n.value = n.Userphone
+              }
+              that.userTelFill = redt
+            }
+          })
+          .catch(function (err) {
+            console.log(err.message)
+          })
+      }
+    },
     handleSelChange (val) {
       this.mulSelData = val
     },
@@ -620,6 +847,7 @@ export default {
       //     console.log(error)
       //   })
     },
+    // 打开摄像头
     openCamera (index, row) {
       this.snapCameraBtn = '拍照'
       this.dialogCameraPackID = row.Id
@@ -633,7 +861,8 @@ export default {
           this.getUserMedia(videoObj,
             function (mediaStream) {
               video.srcObject = mediaStream
-              if(video.paused){
+              // video.play()
+              if (video.paused) {
                 video.play()
               }
             },
@@ -649,6 +878,7 @@ export default {
         }
       })
     },
+    // 拍照
     snapCamera () {
       this.$nextTick(() => {
         if (this.snapCameraBtn === '拍照') {
@@ -665,6 +895,7 @@ export default {
         }
       })
     },
+    // 关闭摄像头
     closeCamera () {
       this.$nextTick(() => {
         this.$refs['video'].srcObject = null
@@ -685,6 +916,142 @@ export default {
         // 旧版API
         navigator.getUserMedia(constraints, success, error)
       }
+    },
+    // 个人菜单点击事件
+    dropDownClick (command) {
+      // this.$message('click on item ' + command)
+      let that = this
+      switch (command) {
+        case 'profile':
+        {
+          that.dialogProfileVisible = true
+          break
+        }
+        case 'modpwd':
+        {
+          that.dialogModPwdVisible = true
+          break
+        }
+        case 'logout':
+        {
+          // HTML5特性，清空所有本地存储或Session存储的全部变量
+          localStorage.clear()
+          sessionStorage.clear()
+          that.$router.push('/login')
+          break
+        }
+        default:
+          break
+      }
+    },
+    // 个人信息修改按钮点击事件
+    profileEditClick () {
+      if (this.profileEditText === '修改') {
+        this.profileForm.inputDisable = false
+        this.profileEditText = '确定'
+      } else {
+        this.submitProfile('profileForm')
+      }
+    },
+    // 个人信息对话框关闭按钮点击事件
+    closeProfileDialog () {
+      this.profileForm.inputDisable = true
+      this.profileEditText = '修改'
+    },
+    // 更新个人信息
+    submitProfile (formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          let obj = {
+            username: this.profileForm.username,
+            nickname: this.profileForm.nickname,
+            address: this.profileForm.address,
+            rad: Math.random()
+          }
+          let that = this
+          this.$http.put('http://211.159.218.41/api/user/' + this.profileForm.id, this.$qs.stringify(obj))
+            .then(function (res) {
+              if (res.data.success) {
+                that.$message({
+                  message: '修改成功！',
+                  type: 'success'
+                })
+                that.profileEditText = '修改'
+                that.profileForm.inputDisable = true
+                that.dialogProfileVisible = false
+              } else {
+                that.$message({
+                  message: '值未变化！',
+                  type: 'info'
+                })
+              }
+            })
+            .catch(function (err) {
+              console.log(err.message)
+            })
+        }
+      })
+    },
+    // 修改密码
+    modpwdSubmitClick (formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          let obj = {
+            pwd: md5(this.modpwdForm.pass),
+            rad: Math.random()
+          }
+          let that = this
+          this.$http.put('http://211.159.218.41/api/user/' + this.uid, this.$qs.stringify(obj))
+            .then(function (res) {
+              if (res.data.success) {
+                that.$message({
+                  message: '修改成功！',
+                  type: 'success'
+                })
+                that.dialogModPwdVisible = false
+              } else {
+                that.$message({
+                  message: '值未变化！',
+                  type: 'info'
+                })
+              }
+            })
+            .catch(function (err) {
+              console.log(err.message)
+            })
+        } else {
+          console.log('密码设置异常!')
+          return false
+        }
+      })
+    },
+    // 满屏loading
+    openFullScreenLoading () {
+      let res = false
+      const loading = this.$loading({
+        lock: true,
+        text: '接通中...',
+        spinner: 'el-icon-phone',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+      let that = this
+      res = setTimeout(() => {
+        loading.close()
+        // 刷新列表
+        that.getCount(that.packData.userphone, that.activeName, '')
+      }, 2000)
+      return res
+    },
+    // 检测是否登录
+    checkLogin () {
+      let res = false
+      let localUid = localStorage.getItem('uid')
+      let sessionUid = sessionStorage.getItem('uid')
+      // console.log(sessionUid + '/' + localUid)
+      if (localUid || sessionUid) {
+        res = true
+      }
+      return res
     }
   }
 }
@@ -699,7 +1066,7 @@ export default {
     padding-right: 20px;
   }
   .el-form-item {
-    margin-left: -30px;
+    margin-left: -20px;
   }
   .el-form-item .el-input {
     width:auto;
@@ -715,5 +1082,26 @@ export default {
   }
   .el-pagination {
     margin-top: 20px;
+  }
+  .user-dropdown-menu {
+    position:absolute;
+    top: 10px;
+    right: 0;
+    width: 150px;
+    heigth: 100%;
+  }
+  .el-dropdown {
+    position: absolute;
+    top:20px;
+  }
+  .el-dropdown-link {
+    cursor: pointer;
+    color: #ffffff;
+  }
+  .tab-tag-search {
+    cursor:pointer;
+  }
+  .daytimeButtons {
+    margin-bottom: 10px;
   }
 </style>

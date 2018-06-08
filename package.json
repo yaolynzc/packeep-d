@@ -13,14 +13,16 @@
     "lint": "eslint --ext .js,.vue src test/unit test/e2e/specs",
     "build": "node build/build.js",
     "electron_dev": "npm run build && electron build/electron.js",
-    "electron_build": "electron-packager ./dist/ --platform=win32 --arch=x64 --icon=./src/assets/packeep.ico --overwrite"
+    "electron_build": "electron-packager ./dist/ --platform=win32 --arch=ia32 --icon=./static/favicon.ico --overwrite"
   },
   "dependencies": {
     "axios": "^0.18.0",
     "element-ui": "^2.3.3",
+    "md5": "^2.2.1",
     "moment": "^2.22.1",
     "qs": "^6.5.1",
     "vue": "^2.5.2",
+    "vue-cookie": "^1.1.4",
     "vue-router": "^3.0.1"
   },
   "devDependencies": {
@@ -43,8 +45,8 @@
     "copy-webpack-plugin": "^4.0.1",
     "cross-spawn": "^5.0.1",
     "css-loader": "^0.28.0",
-    "electron": "^2.0.0",
-    "electron-packager": "^12.0.2",
+    "electron": "^2.0.2",
+    "electron-packager": "^12.1.0",
     "eslint": "^4.19.1",
     "eslint-config-standard": "^10.2.1",
     "eslint-friendly-formatter": "^3.0.0",

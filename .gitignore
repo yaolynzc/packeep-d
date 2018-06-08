@@ -18,5 +18,5 @@ selenium-debug.log
 
 # Electron release directories
 packeep-win32-x64/
-packeep-win32-x86/
+packeep-win32-ia32/
 
